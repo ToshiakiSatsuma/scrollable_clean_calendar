@@ -19,9 +19,10 @@ typedef RangeDate = Function(DateTime minDate, DateTime? maxDate);
 typedef SelectDate = Function(DateTime date);
 typedef TextStyleFunction = Function(bool isSelected);
 
+// HACK: 日曜始まりで固定
 class ScrollableCleanCalendar extends StatefulWidget {
   ScrollableCleanCalendar({
-    this.locale = 'en',
+    this.locale = 'ja',
     required this.minDate,
     required this.maxDate,
     this.isRangeMode = true,
@@ -53,8 +54,6 @@ class ScrollableCleanCalendar extends StatefulWidget {
   final DateTime? initialDateSelected;
   final DateTime? endDateSelected;
 
-  /// Esse parametro sera habilitado em futuras versoes
-  @deprecated
   final int startWeekDay;
 
   final double selectDateRadius;
@@ -72,8 +71,7 @@ class ScrollableCleanCalendar extends StatefulWidget {
   final MainAxisAlignment monthLabelAlign;
 
   @override
-  _ScrollableCleanCalendarState createState() =>
-      _ScrollableCleanCalendarState();
+  _ScrollableCleanCalendarState createState() => _ScrollableCleanCalendarState();
 }
 
 class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
@@ -89,19 +87,20 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
   void initState() {
     initializeDateFormatting();
 
-    final _minDateDay =
-        widget.renderPostAndPreviousMonthDates ? 1 : widget.minDate.day;
+    final _minDateDay = widget.renderPostAndPreviousMonthDates ? 1 : widget.minDate.day;
     final _maxDateDay = widget.renderPostAndPreviousMonthDates
         ? WeekHelper.daysPerMonth(widget.maxDate.year)[widget.maxDate.month - 1]
         : widget.maxDate.day;
 
     _minDate = DateTime(widget.minDate.year, widget.minDate.month, _minDateDay);
-    _maxDate = DateTime(
-        widget.maxDate.year, widget.maxDate.month, _maxDateDay, 23, 59, 00);
-    months = WeekHelper.extractWeeks(_minDate!, _maxDate!, widget.startWeekDay);
+    _maxDate = DateTime(widget.maxDate.year, widget.maxDate.month, _maxDateDay, 23, 59, 00);
+    months = WeekHelper.extractWeeks(
+      minDate: _minDate!,
+      maxDate: _maxDate!,
+      startWeekDay: widget.startWeekDay,
+    );
 
-    _cleanCalendarController =
-        CleanCalendarController(startWeekDay: widget.startWeekDay);
+    _cleanCalendarController = CleanCalendarController(startWeekDay: widget.startWeekDay);
 
     WidgetsBinding.instance?.addPostFrameCallback((_) {
       if (widget.initialDateSelected != null &&
@@ -111,8 +110,7 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
       }
 
       if (widget.endDateSelected != null &&
-          (widget.endDateSelected!.isBefore(widget.maxDate) ||
-              widget.endDateSelected!.isSameDay(widget.maxDate))) {
+          (widget.endDateSelected!.isBefore(widget.maxDate) || widget.endDateSelected!.isSameDay(widget.maxDate))) {
         _onDayClick(widget.endDateSelected!);
       }
     });
@@ -122,39 +120,56 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      controller: widget.scrollController,
-      cacheExtent:
-          (MediaQuery.of(context).size.width / DateTime.daysPerWeek) * 6,
-      itemCount: months!.length,
-      itemBuilder: (context, index) {
-        final month = months![index];
+    return Column(
+      children: [
+        Table(
+          children: [
+            // 週ラベル
+            _buildDayWeeksRow(context),
+          ],
+        ),
+        Expanded(
+          child: ListView.builder(
+            controller: widget.scrollController,
+            cacheExtent: (MediaQuery.of(context).size.width / DateTime.daysPerWeek) * 6,
+            itemCount: months!.length,
+            itemBuilder: (context, index) {
+              final month = months![index];
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
-          child: Column(
-            children: [
-              _buildMonthLabelRow(month, context),
-              Padding(
+              return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12.0),
-                child: Table(
-                  key: ValueKey('Calendar$index'),
+                child: Column(
                   children: [
-                    _buildDayWeeksRow(context),
-                    ...month.weeks.map(
-                      (Week week) {
-                        DateTime firstDay = week.firstDay;
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: Column(
+                        children: [
+                          // 年月ラベル
+                          _buildMonthLabelRow(month, context),
 
-                        return _buildDaysRow(week, firstDay, context);
-                      },
-                    ).toList(growable: false),
+                          Table(
+                            key: ValueKey('Calendar$index'),
+                            children: [
+                              ...month.weeks.map(
+                                (Week week) {
+                                  DateTime firstDay = week.firstDay;
+
+                                  // 日ラベル
+                                  return _buildDaysRow(week, firstDay, context);
+                                },
+                              ).toList(growable: false),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              )
-            ],
+              );
+            },
           ),
-        );
-      },
+        )
+      ],
     );
   }
 
@@ -164,16 +179,11 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
       children: List<Widget>.generate(
         DateTime.daysPerWeek,
         (int position) {
-          DateTime day = DateTime(
-              week.firstDay.year,
-              week.firstDay.month,
-              firstDay.day +
-                  (position - (firstDay.weekday - widget.startWeekDay)));
+          DateTime day = DateTime(week.firstDay.year, week.firstDay.month,
+              firstDay.day + (position - (firstDay.weekday - widget.startWeekDay)));
 
-          final dayIsBeforeMinDate =
-              day.isBefore(widget.minDate) && !day.isSameDay(widget.minDate);
-          final dayIsAfterMaxDate =
-              day.isAfter(widget.maxDate) && !day.isSameDay(widget.maxDate);
+          final dayIsBeforeMinDate = day.isBefore(widget.minDate) && !day.isSameDay(widget.minDate);
+          final dayIsAfterMaxDate = day.isAfter(widget.maxDate) && !day.isSameDay(widget.maxDate);
 
           if ((position + widget.startWeekDay) < week.firstDay.weekday ||
               (position + widget.startWeekDay) > week.lastDay.weekday ||
@@ -182,8 +192,7 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
             return SizedBox.shrink();
           } else if (dayIsBeforeMinDate || dayIsAfterMaxDate) {
             return TableCell(
-              key:
-                  ValueKey(DateFormat('dd-MM-yyyy', widget.locale).format(day)),
+              key: ValueKey(DateFormat('dd-MM-yyyy', widget.locale).format(day)),
               child: Container(
                 child: Center(
                   child: Padding(
@@ -207,23 +216,20 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
 
             if (rangeFeatureEnabled) {
               if (rangeMinDate != null && rangeMaxDate != null) {
-                isSelected = day.isSameDayOrAfter(rangeMinDate!) &&
-                    day.isSameDayOrBefore(rangeMaxDate!);
+                isSelected = day.isSameDayOrAfter(rangeMinDate!) && day.isSameDayOrBefore(rangeMaxDate!);
               } else {
                 isSelected = day.isAtSameMomentAs(rangeMinDate!);
               }
             }
 
             return TableCell(
-              key:
-                  ValueKey(DateFormat('dd-MM-yyyy', widget.locale).format(day)),
+              key: ValueKey(DateFormat('dd-MM-yyyy', widget.locale).format(day)),
               child: GestureDetector(
                 onTap: () {
                   _onDayClick(day);
                 },
                 child: Container(
-                  key: ValueKey(
-                      '${DateFormat('dd-MM-yyyy', widget.locale).format(day)}_container'),
+                  key: ValueKey('${DateFormat('dd-MM-yyyy', widget.locale).format(day)}_container'),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.horizontal(
                       left: Radius.circular(
@@ -245,8 +251,7 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
                         style: widget.dayLabelStyle != null
                             ? widget.dayLabelStyle!(isSelected)
                             : Theme.of(context).textTheme.bodyText2!.copyWith(
-                                  color:
-                                      isSelected ? Colors.white : Colors.black,
+                                  color: isSelected ? Colors.white : Colors.black,
                                 ),
                       ),
                     ),
@@ -281,8 +286,7 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
 
   Color _getBackgroundColor(bool isSelected, DateTime day) {
     if (isSelected) {
-      if (day.compareTo(rangeMinDate!) == 0 ||
-          (rangeMaxDate != null && day.compareTo(rangeMaxDate!) == 0)) {
+      if (day.compareTo(rangeMinDate!) == 0 || (rangeMaxDate != null && day.compareTo(rangeMaxDate!) == 0)) {
         return widget.selectedDateColor;
       } else {
         return widget.rangeSelectedDateColor;
@@ -300,7 +304,7 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
                   child: Center(
                     child: Text(
                       _cleanCalendarController!
-                          .getDaysOfWeek(widget.locale)[i]
+                          .getDaysOfWeek(widget.locale)[((widget.startWeekDay - 1 + i) % 7)]
                           .capitalize(),
                       key: ValueKey("WeekLabel$i"),
                       style: widget.dayWeekLabelStyle ??
@@ -313,10 +317,14 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
                 ),
             ],
           )
-        : TableRow(children: [
-            for (var i = 0; i < DateTime.daysPerWeek; i++)
-              TableCell(child: SizedBox.shrink())
-          ]);
+        : TableRow(
+            children: [
+              for (var i = 0; i < DateTime.daysPerWeek; i++)
+                TableCell(
+                  child: SizedBox.shrink(),
+                ),
+            ],
+          );
   }
 
   Widget _buildMonthLabelRow(Month month, BuildContext context) {

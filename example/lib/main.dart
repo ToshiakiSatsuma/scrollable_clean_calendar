@@ -10,28 +10,31 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Scrollable clean calendar',
+      title: 'スクロールできるカレンダーのテスト',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: Scaffold(
         appBar: AppBar(
-          title: Text('ScrollableCleanCalendar'),
+          centerTitle: true,
+          title: Text('カレンダーリスト表示'),
         ),
         body: ScrollableCleanCalendar(
           onRangeSelected: (firstDate, secondDate) {
-            print('onRangeSelected first $firstDate');
-            print('onRangeSelected second $secondDate');
+            print('開始日: $firstDate');
+            print('終了日: $secondDate');
           },
           onTapDate: (date) {
-            print('onTap $date');
+            print('タップ: $date');
           },
-          locale: 'pt', //default is en
           minDate: DateTime.now(),
           maxDate: DateTime.now().add(
             Duration(days: 365),
           ),
+          monthLabelAlign: MainAxisAlignment.start,
+          startWeekDay: DateTime.sunday,
+          showDaysWeeks: true,
           renderPostAndPreviousMonthDates: true,
         ),
       ),
