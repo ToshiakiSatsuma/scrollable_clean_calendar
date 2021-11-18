@@ -12,92 +12,41 @@ class WeekHelper {
     if (endWeekDay > 7) {
       endWeekDay = endWeekDay - 7;
     }
+    DateTime currentDate = minDate;
 
-    // カレンダーの最初の週の最初の日を求める
-    DateTime weekMinDate = _startDayOfWeek(minDate, startWeekDay);
-
-    // カレンダーの最後の週の最終の日を求める
-    DateTime weekMaxDate = _endDayOfWeek(maxDate, endWeekDay);
-
-    DateTime firstDayOfWeek = weekMinDate;
-    DateTime lastDayOfWeek = _endDayOfWeek(minDate, endWeekDay);
-
-    if (!lastDayOfWeek.isBefore(weekMaxDate)) {
-      return <Month>[
-        Month(<Week>[Week(firstDayOfWeek, lastDayOfWeek)])
-      ];
+    if (!minDate.isBefore(maxDate)) {
+      return <Month>[];
     } else {
       List<Month> months = [];
       List<Week> weeks = [];
 
-      while (lastDayOfWeek.isBefore(weekMaxDate)) {
-        Week week = Week(firstDayOfWeek, lastDayOfWeek);
-        weeks.add(week);
+      List<DateTime> _datesInWeek = [];
 
-        if (week.isLastWeekOfMonth) {
-          if (lastDayOfWeek.isSameDayOrAfter(minDate)) {
+      while (!currentDate.isAfter(maxDate)) {
+        _datesInWeek.add(currentDate);
+
+        if (currentDate.weekday == endWeekDay || currentDate.day == currentDate.daysInMonth) {
+          Week week = Week(_datesInWeek[0], _datesInWeek[_datesInWeek.length - 1]);
+          weeks.add(week);
+
+          if (currentDate.day == currentDate.daysInMonth) {
             months.add(Month(weeks));
+            weeks = [];
           }
 
-          weeks = [];
-
-          firstDayOfWeek = firstDayOfWeek.toFirstDayOfNextMonth();
-          lastDayOfWeek = _endDayOfWeek(firstDayOfWeek, endWeekDay);
-
-          weeks.add(Week(firstDayOfWeek, lastDayOfWeek));
+          _datesInWeek = [];
         }
 
-        firstDayOfWeek = lastDayOfWeek.nextDay;
-        lastDayOfWeek = _endDayOfWeek(firstDayOfWeek, endWeekDay);
+        currentDate = currentDate.add(Duration(days: 1));
+
       }
-
-      if (!lastDayOfWeek.isBefore(weekMaxDate)) {
-        weeks.add(Week(firstDayOfWeek, lastDayOfWeek));
-      }
-
-      months.add(Month(weeks));
-
-      months.removeWhere((element) => maxDate.isBefore(element.weeks.first.firstDay));
 
       return months;
     }
   }
 
-  // 週の始まりの日付を求める
-  static DateTime _startDayOfWeek(DateTime targetDate, int startWeekDay) {
-    targetDate = DateTime(targetDate.year, targetDate.month, targetDate.day);
-
-    if (targetDate.weekday == startWeekDay) {
-      return targetDate;
-    } else {
-      // dateの曜日とweekDayの差を求める
-      int days = (startWeekDay - targetDate.weekday).abs();
-      if (days > 4) {
-        days = 7 - days;
-      }
-
-      return targetDate.subtract(Duration(days: days));
-    }
-  }
-
-  // 週のおわりの日付を求める
-  static DateTime _endDayOfWeek(DateTime targetDate, int endWeekDay) {
-    targetDate = DateTime(targetDate.year, targetDate.month, targetDate.day);
-
-    if (targetDate.weekday == endWeekDay) {
-      return targetDate;
-    } else {
-      // dateの曜日とweekDayの差を求める
-      int days = (endWeekDay - targetDate.weekday).abs();
-      if (days > 4) {
-        days = 7 - days;
-      }
-
-      return targetDate.subtract(Duration(days: -days));
-    }
-  }
-
-  static List<int> daysPerMonth(int year) => <int>[
+  static List<int> daysPerMonth(int year) =>
+      <int>[
         31,
         isLeapYear(year) ? 29 : 28,
         31,
@@ -142,7 +91,8 @@ extension DateUtilsExtensions on DateTime {
 
   int get daysInMonth => WeekHelper.daysPerMonth(year)[month - 1];
 
-  DateTime toFirstDayOfNextMonth() => DateTime(
+  DateTime toFirstDayOfNextMonth() =>
+      DateTime(
         year,
         month + 1,
       );

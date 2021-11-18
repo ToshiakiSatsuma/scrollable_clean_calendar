@@ -38,7 +38,7 @@ class ScrollableCleanCalendar extends StatefulWidget {
     this.onTapDate,
     this.renderPostAndPreviousMonthDates = false,
     this.disabledDateColor = Colors.grey,
-    this.startWeekDay = DateTime.monday,
+    this.startWeekDay = DateTime.sunday,
     this.initialDateSelected,
     this.endDateSelected,
     this.scrollController,
@@ -175,10 +175,93 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
 
   TableRow _buildDaysRow(Week week, DateTime firstDay, BuildContext context) {
     // _cleanCalendarController.dayOfWeek()
+    // weekの日数を生成
+    int dayCount =  week.duration + 1;
+
+    List<Widget> listContent = <Widget>[
+      // 月初日が含まれている場合
+      if (week.firstDay.day == 1)
+        ...List.generate(DateTime.daysPerWeek - dayCount, (_) {
+          return SizedBox.shrink();
+        }),
+
+      ...List.generate(dayCount, (int position) {
+        DateTime day = DateTime(week.firstDay.year, week.firstDay.month,
+            firstDay.day+ position);
+
+        bool rangeFeatureEnabled = rangeMinDate != null;
+
+        bool isSelected = false;
+
+        if (rangeFeatureEnabled) {
+          if (rangeMinDate != null && rangeMaxDate != null) {
+            isSelected = day.isSameDayOrAfter(rangeMinDate!) && day.isSameDayOrBefore(rangeMaxDate!);
+          } else {
+            isSelected = day.isAtSameMomentAs(rangeMinDate!);
+          }
+        }
+
+        return TableCell(
+          key: ValueKey(DateFormat('dd-MM-yyyy', widget.locale).format(day)),
+          child: GestureDetector(
+            onTap: () {
+              _onDayClick(day);
+            },
+            child: Container(
+              key: ValueKey('${DateFormat('dd-MM-yyyy', widget.locale).format(day)}_container'),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.horizontal(
+                  left: Radius.circular(
+                    _getRadiusRangeMinDate(isSelected, day),
+                  ),
+                  right: Radius.circular(
+                    _getRadiusRangeMaxDate(isSelected, day),
+                  ),
+                ),
+                color: _getBackgroundColor(isSelected, day),
+              ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                  ),
+                  child: Text(
+                    DateFormat('d', widget.locale).format(day),
+                    style: widget.dayLabelStyle != null
+                        ? widget.dayLabelStyle!(isSelected)
+                        : Theme.of(context).textTheme.bodyText2!.copyWith(
+                      color: isSelected ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+
+      // 月末日が含まれている場合
+      if (week.isLastWeekOfMonth)
+        ...List.generate(DateTime.daysPerWeek - dayCount, (_) {
+          return SizedBox.shrink();
+        }),
+    ];
+
+    return TableRow(children: listContent);
+
+    // 月初日が含まれている週の場合
+
+    // それ以外の週の場合
+    // return TableRow(
+    //   children: List.generate(week.duration, (_) => SizedBox.shrink()),
+    // );
+
     return TableRow(
       children: List<Widget>.generate(
         DateTime.daysPerWeek,
         (int position) {
+          // 月初であるか判定
+
           DateTime day = DateTime(week.firstDay.year, week.firstDay.month,
               firstDay.day + (position - (firstDay.weekday - widget.startWeekDay)));
 
@@ -304,7 +387,7 @@ class _ScrollableCleanCalendarState extends State<ScrollableCleanCalendar> {
                   child: Center(
                     child: Text(
                       _cleanCalendarController!
-                          .getDaysOfWeek(widget.locale)[((widget.startWeekDay - 1 + i) % 7)]
+                          .getDaysOfWeek(widget.locale)[((widget.startWeekDay + i) % 7)]
                           .capitalize(),
                       key: ValueKey("WeekLabel$i"),
                       style: widget.dayWeekLabelStyle ??

@@ -33,7 +33,6 @@ class MyApp extends StatelessWidget {
             Duration(days: 365),
           ),
           monthLabelAlign: MainAxisAlignment.start,
-          startWeekDay: DateTime.sunday,
           showDaysWeeks: true,
           renderPostAndPreviousMonthDates: true,
         ),
