@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scrollable_clean_calendar/scrollable_clean_calendar.dart';
+import 'package:scrollable_clean_calendar/resources.dart';
 
 void main() {
   runApp(MyApp());
@@ -35,6 +36,21 @@ class MyApp extends StatelessWidget {
           monthLabelAlign: MainAxisAlignment.start,
           showDaysWeeks: true,
           renderPostAndPreviousMonthDates: true,
+          selectedDateColor: selectedDateColor,
+          rangeSelectedDateColor: rangeSelectedDateColor,
+          selectedDateTextColor: selectedDateTextColor,
+          holidayTextColor: holidayTextColor,
+          weekdayTextColor: weekdayTextColor,
+           dayWeekLabelStyle: TextStyle(
+            color: weekdayLabelColor,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+          monthLabelStyle: TextStyle(
+            color: weekdayTextColor,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
